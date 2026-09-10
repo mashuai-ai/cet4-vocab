@@ -266,17 +266,20 @@ updateProg();
     for(var i=order.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=order[i];order[i]=order[j];order[j]=t;}
     var unseen=order.filter(function(x){return !seen.has(x)&&!masterSet.has(x);});
     var newOrdered=unseen;
+    var NEW_MIN=40,REV_CAP=100-NEW_MIN;   /* 每天至少 40 个新词，其余名额给复习 */
     var pick=[];
-    for(var k=0;k<dueIds.length&&pick.length<100;k++)pick.push(dueIds[k]);
+    for(var k=0;k<dueIds.length&&pick.length<REV_CAP;k++)pick.push(dueIds[k]);
+    var dueTaken=pick.length;             /* 前 dueTaken 个是到期复习词 */
     for(var k2=0;k2<newOrdered.length&&pick.length<100;k2++)pick.push(newOrdered[k2]);
     if(pick.length<100){
       var rest=order.filter(function(x){return !masterSet.has(x)&&pick.indexOf(x)<0;});
       for(var k3=0;k3<rest.length&&pick.length<100;k3++)pick.push(rest[k3]);
     }
     daily[key]=pick;lsSet(KEY_DAILY,daily);
-    pick.forEach(function(id){
+    pick.forEach(function(id,ix){
       if(!seen.has(id))seen.add(id);
-      if(!review[id])review[id]={first:today,last:today,reps:0,due:ymdAdd(today,GAPS[0])};
+      if(!review[id]){review[id]={first:today,last:today,reps:0,due:ymdAdd(today,GAPS[0])};}
+      else if(ix<dueTaken){review[id].due=ymdAdd(today,1);review[id].last=today;} /* 没点反馈就顺延到明天，避免卡死在队首 */
     });
     lsSet(KEY_SEEN,Array.from(seen));
     lsSet(KEY_REVIEW,review);
